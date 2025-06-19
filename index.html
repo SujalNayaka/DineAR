@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DineAR - The Future of Dining</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome for social media icons (optional, can use emojis or SVGs) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <!-- Three.js for 3D model -->
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.156.1/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.156.1/examples/jsm/"
+        }
+      }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a; /* A very dark grey, almost black */
+            color: #e5e5e5; /* A light grey for text */
+        }
+        .gradient-text {
+            background: linear-gradient(90deg, #FCD34D, #F97316);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+        }
+        .cta-button {
+            transition: all 0.3s ease;
+        }
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(252, 211, 77, 0.2);
+        }
+        /* Animation for elements scrolling into view */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        #ar-demo-canvas-container {
+            cursor: grab;
+            height: 60vh;
+            max-height: 700px;
+            background-image: url('table.jpg');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+         #ar-demo-canvas-container:grabbing {
+            cursor: grabbing;
+        }
+        .food-item-card {
+            transition: all 0.2s ease-in-out;
+        }
+        .food-item-card:hover {
+            transform: translateY(-5px);
+            border-color: #F97316;
+        }
+        .food-item-card.selected {
+            border-color: #FCD34D;
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 0 20px rgba(252, 211, 77, 0.3);
+        }
+        #video-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+            display: none;
+        }
+        /* Style for loading message */
+        #loading-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #FCD34D;
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: none; /* Hidden by default */
+        }
+
+        /* Hero section background with opacity */
+        .hero-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('dining.jpg'); /* Replace with your desired image */
+            background-size: cover;
+            background-position: center;
+            opacity: 0.4; /* Adjust for desired transparency */
+            z-index: -1;
+        }
+        .hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4); /* Dark overlay to improve text readability */
+            z-index: -1;
+        }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+
+    <!-- Header -->
+    <header class="fixed top-0 left-0 w-full z-50 transition-all duration-300" id="header">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <!-- Logo and Name -->
+            <div class="flex items-center">
+                <img src="dinearlogo.png" alt="DineAR Logo" class="h-10 w-10 mr-2 rounded-full">
+                <h1 class="text-2xl font-bold">
+                    <span>Dine</span><span class="gradient-text">AR</span>
+                </h1>
+            </div>
+            <!-- Desktop Navigation -->
+            <nav class="hidden md:flex space-x-8 items-center">
+                <a href="#features" class="hover:text-amber-400 transition-colors">Features</a>
+                <a href="#demo" class="hover:text-amber-400 transition-colors">Demo</a>
+                <a href="#calculator" class="hover:text-amber-400 transition-colors">ROI</a>
+                <a href="#contact" class="bg-amber-500 text-black font-bold py-2 px-4 rounded-lg hover:bg-amber-400 transition-colors">Request a Demo</a>
+            </nav>
+            <!-- Mobile Menu Button -->
+            <button class="md:hidden text-2xl" id="mobile-menu-button">
+                &#9776;
+            </button>
+        </div>
+    </header>
+    
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="hidden fixed top-0 left-0 w-full h-full bg-black/90 z-40 flex flex-col items-center justify-center space-y-8">
+        <a href="#features" class="text-2xl hover:text-amber-400 transition-colors menu-link">Features</a>
+        <a href="#demo" class="text-2xl hover:text-amber-400 transition-colors menu-link">Demo</a>
+        <a href="#calculator" class="text-2xl hover:text-amber-400 transition-colors menu-link">ROI</a>
+        <a href="#contact" class="text-2xl bg-amber-500 text-black font-bold py-3 px-6 rounded-lg hover:bg-amber-400 transition-colors menu-link">Request a Demo</a>
+    </div>
+
+
+    <main>
+        <!-- Hero Section -->
+        <section class="min-h-screen flex items-center pt-20 relative">
+            <div class="hero-background"></div>
+            <div class="hero-overlay"></div>
+            <div class="container mx-auto px-4 text-center relative z-10"> <!-- z-10 to keep content above background -->
+                <h2 class="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-4 leading-tight reveal">
+                    Taste with Your Eyes. <br class="hidden md:block">
+                    <span class="gradient-text">Experience the Future of Menus.</span>
+                </h2>
+                <p class="max-w-3xl mx-auto text-lg md:text-xl text-neutral-200 mb-8 reveal" style="transition-delay: 100ms;">
+                    Transform your restaurant's dining experience with stunning, interactive 3D augmented reality menus. Let your customers see exactly what they're ordering, boosting sales and satisfaction.
+                </p>
+                <a href="#contact" class="cta-button inline-block bg-gradient-to-r from-amber-400 to-orange-500 text-black font-bold text-lg py-4 px-8 rounded-full reveal" style="transition-delay: 200ms;">
+                    Get Your Free Demo
+                </a>
+                <div class="mt-12 reveal" style="transition-delay: 300ms;">
+                    <img src="Restaurant AR.jpeg" alt="App Preview" class="mx-auto rounded-2xl shadow-2xl border border-white/10">
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="py-20">
+            <div class="container mx-auto px-4">
+                <div class="text-center mb-12">
+                    <h3 class="text-4xl font-bold mb-2 reveal">Why Restaurants Love DineAR</h3>
+                    <p class="text-neutral-400 reveal">Unlock tangible benefits from day one.</p>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Feature Card 1 -->
+                    <div class="glass-card p-8 text-center reveal">
+                        <div class="text-5xl mb-4 gradient-text">📈</div>
+                        <h4 class="text-2xl font-bold mb-2">Increase Sales by This Incredible Feature</h4>
+                        <p class="text-neutral-400">Visually appealing dishes encourage customers to order more, especially high-margin items. See an immediate uplift in your average order value.</p>
+                    </div>
+                    <!-- Feature Card 2 -->
+                    <div class="glass-card p-8 text-center reveal" style="transition-delay: 100ms;">
+                        <div class="text-5xl mb-4 gradient-text">😍</div>
+                        <h4 class="text-2xl font-bold mb-2">Wow Your Customers</h4>
+                        <p class="text-neutral-400">Create an unforgettable, shareable dining experience. Customers love the "wow" factor, leading to free social media marketing and repeat business.</p>
+                    </div>
+                    <!-- Feature Card 3 -->
+                    <div class="glass-card p-8 text-center reveal" style="transition-delay: 200ms;">
+                         <div class="text-5xl mb-4 gradient-text">🎯</div>
+                        <h4 class="text-2xl font-bold mb-2">Reduce Order Errors</h4>
+                        <p class="text-neutral-400">When customers see what they're getting, there's no more confusion or disappointment. This leads to happier customers and less food waste.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Interactive AR Demo Section -->
+        <section id="demo" class="py-20 bg-black/20">
+            <div class="container mx-auto px-4">
+                <div class="text-center mb-12">
+                    <h3 class="text-4xl font-bold mb-2 reveal">Experience Live AR</h3>
+                    <p class="text-neutral-400 reveal">Select a dish, then view it in your own space!</p>
+                </div>
+                
+                <div id="ar-demo-canvas-container" class="w-full rounded-2xl reveal shadow-2xl overflow-hidden">
+                    <video id="video-background" autoplay playsinline muted></video>
+                    <!-- 3D Canvas will be inserted here by Three.js -->
+                    <div id="loading-message">Loading 3D Model...</div>
+                </div>
+                <div id="ar-controls" class="mt-6 text-center reveal">
+                     <button id="start-ar-button" class="cta-button inline-block bg-gradient-to-r from-amber-400 to-orange-500 text-black font-bold text-lg py-3 px-8 rounded-full">
+                        View in Your Space (AR)
+                     </button>
+                     <button id="stop-ar-button" class="hidden cta-button inline-block bg-red-600 text-white font-bold text-lg py-3 px-8 rounded-full">
+                        Stop AR
+                     </button>
+                     <p id="ar-error-message" class="text-red-500 mt-4 hidden"></p>
+                </div>
+
+                <div class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4 reveal">
+                    <div id="select-burger" class="food-item-card glass-card p-4 text-center cursor-pointer border-2 border-transparent selected">
+                        <p class="text-4xl">🍔</p>
+                        <p class="font-semibold mt-2">Gourmet Burger</p>
+                    </div>
+                     <div id="select-pizza" class="food-item-card glass-card p-4 text-center cursor-pointer border-2 border-transparent">
+                        <p class="text-4xl">🥘🍲🍗</p>
+                        <p class="font-semibold mt-2">Biryani</p>
+                    </div>
+                     <div id="select-sushi" class="food-item-card glass-card p-4 text-center cursor-pointer border-2 border-transparent">
+                        <p class="text-4xl">🍗</p>
+                        <p class="font-semibold mt-2">Chicken Tandoori</p>
+                    </div>
+                     <div id="select-taco" class="food-item-card glass-card p-4 text-center cursor-pointer border-2 border-transparent">
+                        <p class="text-4xl">🍲</p>
+                        <p class="font-semibold mt-2">Palak Paneer</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ROI Calculator Section -->
+        <section id="calculator" class="py-20">
+            <div class="container mx-auto px-4">
+                <div class="text-center mb-12">
+                    <h3 class="text-4xl font-bold mb-2 reveal">Calculate Your Potential ROI</h3>
+                    <p class="text-neutral-400 reveal">See how much extra revenue DineAR could generate for you.</p>
+                </div>
+                <div class="max-w-2xl mx-auto glass-card p-8 reveal">
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <label for="avg-customers" class="block mb-2 font-medium">Daily Customers</label>
+                            <input type="number" id="avg-customers" value="150" class="w-full bg-neutral-800 rounded-lg p-3 border border-neutral-700 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label for="avg-bill" class="block mb-2 font-medium">Average Bill ($)</label>
+                            <input type="number" id="avg-bill" value="25" class="w-full bg-neutral-800 rounded-lg p-3 border border-neutral-700 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                    </div>
+                    <div class="mt-8 text-center">
+                         <button id="calculate-roi" class="cta-button inline-block bg-gradient-to-r from-amber-400 to-orange-500 text-black font-bold text-lg py-3 px-8 rounded-full">Calculate</button>
+                    </div>
+                    <div id="roi-result" class="mt-8 text-center hidden">
+                        <p class="text-lg text-neutral-400">Projected Additional Monthly Revenue:</p>
+                        <p class="text-4xl font-bold gradient-text" id="revenue-value">$0</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Contact Section -->
+        <section id="contact" class="py-20 bg-black/20">
+            <div class="container mx-auto px-4 text-center">
+                 <h3 class="text-4xl font-bold mb-2 reveal">Ready to Revolutionize Your Menu?</h3>
+                 <p class="text-neutral-400 max-w-xl mx-auto mb-8 reveal">Fill out the form below to schedule a free, no-obligation demo with one of our specialists.</p>
+                 <div class="max-w-xl mx-auto glass-card p-8 reveal">
+                     <form>
+                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <input type="text" placeholder="Your Name" class="w-full bg-neutral-800 rounded-lg p-3 border border-neutral-700 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            <input type="text" placeholder="Restaurant Name" class="w-full bg-neutral-800 rounded-lg p-3 border border-neutral-700 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                         </div>
+                         <div class="mb-4">
+                            <input type="email" placeholder="Email Address" class="w-full bg-neutral-800 rounded-lg p-3 border border-neutral-700 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                         </div>
+                         <div class="mb-6">
+                            <textarea placeholder="Your Message (optional)" rows="4" class="w-full bg-neutral-800 rounded-lg p-3 border border-neutral-700 focus:ring-2 focus:ring-amber-500 focus:outline-none"></textarea>
+                         </div>
+                         <button type="submit" class="cta-button w-full bg-gradient-to-r from-amber-400 to-orange-500 text-black font-bold text-lg py-3 px-8 rounded-full">
+                            Request My Demo
+                         </button>
+                     </form>
+                 </div>
+            </div>
+        </section>
+
+    </main>
+    
+    <!-- Footer -->
+    <footer class="py-12 bg-black/40 border-t border-neutral-800">
+        <div class="container mx-auto px-4 text-neutral-400 grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
+            <!-- Contact Details Column -->
+            <div>
+                <h5 class="text-xl font-bold text-white mb-4">Contact Us</h5>
+                <p class="mb-2"><i class="fas fa-phone-alt text-amber-500 mr-2"></i> +1 (123) 456-7890</p>
+                <p class="mb-2"><i class="fas fa-envelope text-amber-500 mr-2"></i> info@dinear.com</p>
+                <p class="mb-2"><i class="fas fa-globe text-amber-500 mr-2"></i> <a href="#" class="hover:text-amber-400">www.dinear.com</a></p>
+                <p class="mb-2"><i class="fas fa-map-marker-alt text-amber-500 mr-2"></i> 123 Innovation St, Tech City, AB 12345</p>
+            </div>
+
+            <!-- Quick Links / Navigation (can be expanded) -->
+            <div>
+                <h5 class="text-xl font-bold text-white mb-4">Quick Links</h5>
+                <ul>
+                    <li class="mb-2"><a href="#features" class="hover:text-amber-400 transition-colors">Features</a></li>
+                    <li class="mb-2"><a href="#demo" class="hover:text-amber-400 transition-colors">Demo</a></li>
+                    <li class="mb-2"><a href="#calculator" class="hover:text-amber-400 transition-colors">ROI Calculator</a></li>
+                    <li class="mb-2"><a href="#contact" class="hover:text-amber-400 transition-colors">Request Demo</a></li>
+                </ul>
+            </div>
+
+            <!-- Social Media Toggles/Links -->
+            <div>
+                <h5 class="text-xl font-bold text-white mb-4">Connect With Us</h5>
+                <div class="flex justify-center md:justify-start space-x-6 text-2xl">
+                    <a href="#" class="hover:text-amber-500 transition-colors" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
+                    <a href="#" class="hover:text-amber-500 transition-colors" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="hover:text-amber-500 transition-colors" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                    <a href="#" class="hover:text-amber-500 transition-colors" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                    <a href="#" class="hover:text-amber-500 transition-colors" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Copyright and Policy Links (bottom part of footer) -->
+        <div class="container mx-auto px-4 text-center text-neutral-500 mt-12 border-t border-neutral-700 pt-8">
+            <p>&copy; 2025 DineAR. All Rights Reserved.</p>
+            <div class="flex justify-center space-x-4 mt-4">
+                <a href="#" class="hover:text-amber-400">Privacy Policy</a>
+                <a href="#" class="hover:text-amber-400">Terms of Service</a>
+            </div>
+        </div>
+    </footer>
+
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'; // Import GLTFLoader
+
+        // --- Basic UI & Animations ---
+        const header = document.getElementById('header');
+        window.addEventListener('scroll', () => {
+            header.classList.toggle('bg-black/80', window.scrollY > 50);
+            header.classList.toggle('backdrop-blur-sm', window.scrollY > 50);
+        });
+
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuButton.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
+        document.querySelectorAll('.menu-link').forEach(el => {
+            el.addEventListener('click', () => mobileMenu.classList.add('hidden'));
+        });
+
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => entry.target.classList.toggle('visible', entry.isIntersecting));
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+        
+        document.getElementById('calculate-roi').addEventListener('click', () => {
+            const customers = parseFloat(document.getElementById('avg-customers').value) || 0;
+            const bill = parseFloat(document.getElementById('avg-bill').value) || 0;
+            const monthlyIncrease = customers * (bill * 0.15) * 30;
+            document.getElementById('revenue-value').textContent = `$${monthlyIncrease.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+            document.getElementById('roi-result').classList.remove('hidden');
+        });
+
+        // --- Three.js AR Simulation ---
+        const container = document.getElementById('ar-demo-canvas-container');
+        const startARButton = document.getElementById('start-ar-button');
+        const stopARButton = document.getElementById('stop-ar-button');
+        const arErrorMessage = document.getElementById('ar-error-message');
+        const videoElement = document.getElementById('video-background');
+        const loadingMessage = document.getElementById('loading-message'); // Get loading message element
+
+        let scene, camera, renderer, controls, currentModel, videoStream;
+        const gltfLoader = new GLTFLoader(); // Initialize GLTFLoader
+
+        function init3D() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 2, 4);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.target.set(0, 0, 0);
+            controls.enableDamping = true;
+            controls.minDistance = 2;
+            controls.maxDistance = 10;
+            controls.maxPolarAngle = Math.PI; // Allow full rotation
+
+            // Add lighting
+            const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambient);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            dirLight.position.set(3, 5, 2);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            animate();
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onWindowResize() {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // --- AR Functionality ---
+        startARButton.addEventListener('click', async () => {
+            arErrorMessage.classList.add('hidden');
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                arErrorMessage.textContent = "AR is not supported on your browser.";
+                arErrorMessage.classList.remove('hidden');
+                return;
+            }
+            try {
+                // Request back camera
+                videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                videoElement.srcObject = videoStream;
+                videoElement.style.display = 'block';
+
+                const videoTexture = new THREE.VideoTexture(videoElement);
+                scene.background = videoTexture;
+
+                // Remove shadow plane for AR mode (if it exists, e.g., from a static scene)
+                if(scene.getObjectByName('shadowPlane')) {
+                     scene.remove(scene.getObjectByName('shadowPlane'));
+                }
+                
+                startARButton.classList.add('hidden');
+                stopARButton.classList.remove('hidden');
+
+            } catch (err) {
+                console.error("Error accessing camera: ", err);
+                arErrorMessage.textContent = "Could not access the camera. Please check permissions.";
+                arErrorMessage.classList.remove('hidden');
+            }
+        });
+
+        stopARButton.addEventListener('click', () => {
+             if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+            }
+            videoElement.style.display = 'none';
+            scene.background = null; // Revert to transparent background
+
+            stopARButton.classList.add('hidden');
+            startARButton.classList.remove('hidden');
+        });
+        
+
+        // --- Model Loading Function for GLB Files ---
+        async function setFoodModel(modelPath) {
+            if (currentModel) {
+                scene.remove(currentModel); // Remove previous model
+                // Dispose of geometries and materials to free up memory
+                currentModel.traverse(child => { 
+                    if (child.isMesh) {
+                        if (child.geometry) child.geometry.dispose();
+                        if (child.material) {
+                            if (Array.isArray(child.material)) {
+                                child.material.forEach(material => material.dispose());
+                            } else {
+                                child.material.dispose();
+                            }
+                        }
+                    }
+                });
+            }
+            
+            loadingMessage.style.display = 'block'; // Show loading message
+
+            try {
+                const gltf = await gltfLoader.loadAsync(modelPath);
+                currentModel = gltf.scene;
+
+                // Center the model and adjust scale. These values are often trial-and-error per model.
+                // You might need to adjust these more precisely for each of your custom food models.
+                const box = new THREE.Box3().setFromObject(currentModel);
+                const size = box.getSize(new THREE.Vector3());
+                const center = box.getCenter(new THREE.Vector3());
+
+                // Calculate a scale factor to fit the model within a reasonable view (e.g., 2 units wide/high)
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const scale = 2 / maxDim; // Target a max dimension of 2 units
+
+                currentModel.scale.set(scale, scale, scale);
+                // Position to center the model at (0,0,0) after scaling
+                currentModel.position.sub(center).multiplyScalar(scale);
+                currentModel.position.y += size.y * scale * 0.5; // Lift model slightly above origin for ground plane
+
+                // Ensure shadows are cast for the new model
+                currentModel.traverse(child => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true; // Also allow it to receive shadows from other objects/light
+                    }
+                });
+
+                scene.add(currentModel); // Add the new model to the scene
+            } catch (error) {
+                console.error('An error occurred while loading the 3D model:', error);
+                arErrorMessage.textContent = `Failed to load 3D model. Please ensure the file is correctly placed in the 'models/' folder relative to index.html. Error: ${error.message}.`;
+                arErrorMessage.classList.remove('hidden');
+            } finally {
+                loadingMessage.style.display = 'none'; // Hide loading message
+            }
+        }
+
+        // --- Event Listeners for Food Selection ---
+        // Updated to use relative paths for your downloaded GLB files
+        const foodItems = [
+            // IMPORTANT:
+            // For these paths to work, you need to place your downloaded .glb files
+            // in a folder named 'models' in the same directory as your HTML file.
+            // For example:
+            // - index.html
+            // - models/
+            //   - burger.glb
+            //   - pizza.glb
+            //   - sushi.glb
+            //   - taco.glb
+            { id: 'select-burger', name: 'Gourmet Burger', modelPath: './models/burger_realistic_free.glb' },
+            { id: 'select-pizza', name: 'Biryani', modelPath: './models/best_biryani.glb' },
+            { id: 'select-sushi', name: 'Chicken Tandoori', modelPath: './models/tandoori_mix_grill.glb' },
+            { id: 'select-taco', name: 'Palak Paneer', modelPath: './models/palak_paneer.glb' }
+        ];
+
+        foodItems.forEach(item => {
+            document.getElementById(item.id).addEventListener('click', () => {
+                setFoodModel(item.modelPath); // Pass the model path directly
+                // Update selected class
+                document.querySelector('.food-item-card.selected').classList.remove('selected');
+                document.getElementById(item.id).classList.add('selected');
+            });
+        });
+
+        // Initial setup
+        init3D();
+        setFoodModel(foodItems[0].modelPath); // Load the first model by default (e.g., the Burger)
+    </script>
+</body>
+</html>
